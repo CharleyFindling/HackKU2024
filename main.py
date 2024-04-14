@@ -86,7 +86,7 @@ db = LocalProxy(get_db)
 
 #Description: Does work when on corresponding HTML methods
 ######################### Handling ############################
-def resuarant_push(userName, password, isBusiness,isIndividual,isOrg, name,driversLicense, dob, address):
+def restuarant_push(userName, password, isBusiness,isIndividual,isOrg, name,driversLicense, dob, address):
     temp =  {"db":{
             "Entity":[
             {
@@ -140,10 +140,17 @@ def food_update(foodId):
     print(db)
     result = []
     temp = db.find({"db.food.foodId" : 0})
+
+        
     result = json.loads(json_util.dumps(temp))
-    print(result)
-    foodQuantity = result[0][1][3]
-    print(foodQuantity)
+    result = list(result)
+    #print(map(result[0][1]))
+    #print("Len", len(result[0][1]))
+    #for i in range(len(result)):
+        #for j in range(len(result[i])):
+            #if(result[i][j] == 'foodQuantitiy'):
+                #foodQuantity = result[i][j][0]
+    foodQuantity = 0
     if(foodQuantity > 0):
         foodQuantity -= 1
         db.update_one({"db.food.foodId": 0},
@@ -202,8 +209,25 @@ def deleteFoodByID(thisID):
         db.delete_one({"db.food.foodId" : thisID})
     else:
         return "Element not in db"
+    
+def getAll():
+    result = []
+    cursor = db.find({})
+    i = 0
+    for document in cursor:
+          result.append(json_util.dumps(document))
+    return result
 #Description: Control flow section to handle HTML methods
 ###################### control flow ############################
+@app.route('/get_all', methods=['GET'])
+def flow_get_all():
+    try:
+        return (getAll())
+    except Exception as e:
+        print("Error", e)
+        return jsonify({'error': str("DARN")}), 400
+    
+
 @app.route('/restuarant_push', methods =['POST'])
 def flow_restuarant_push():
     
@@ -219,7 +243,7 @@ def flow_restuarant_push():
     driversLicense = request.args.get('driversLicense')
     dob = request.args.get('dob')
     try:
-        resuarant_push(userName, password, isBusiness,isIndividual,isOrg, name,driversLicense, dob, address)
+        restuarant_push(userName, password, isBusiness,isIndividual,isOrg, name,driversLicense, dob, address)
         return ("restuarant push")
     except Exception as e:
         print("Error", e)
