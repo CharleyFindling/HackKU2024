@@ -19,6 +19,8 @@ import pymongo
 from bson import json_util, ObjectId
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
+from bson import json_util
+import json
 
 #Name: get_deb
 #Description: creates a "link" to the data-base, as db
@@ -114,62 +116,40 @@ def resuarant_push(userName, password, isBusiness,isIndividual,isOrg, name,drive
     }
     }
     #{str(userName):[{'password': password, 'Restuarant: ' : name, 'Address: ' : address}]}
-    print(db.Restuarants.insert_one(temp))
+    print(db.insert_one(temp))
 
 def food_push(foodId, foodName, foodBestBy, foodQuantity, foodPostedBy, foodLocation, pickUpTime):
-    print(db)
-    
-    print(db.update_one(
-        {
-            "Entity.Name" : "Hello"
-        }
-        ,
-        {
-            "$set" : {
-                "food.foodId": foodId,
-                "food.foodName": foodName,
-                "food.foodBestBy": foodBestBy,
-                "food.foodQuantity":10000,
-                "food.foodPostedBy": foodPostedBy,
-                "food.foodLocation": foodLocation,
-                "food.pickUpTime": pickUpTime
-            }
-        }
 
-    ))
+    if(foodId == None):
+        foodId = 0
+
     template = {
                 "foodId": foodId,
                 "foodName": foodName,
                 "foodBestBy": foodBestBy,
-                "foodQuantity":10000,
+                "foodQuantity":foodQuantity,
                 "foodPostedBy": foodPostedBy,
                 "foodLocation": foodLocation,
                 "pickUpTime": pickUpTime
                 }
     
     print("\n\n",db.update_many({"db.Entity.Name" : "Hello"}, {"$set": {"db.food": template}}, upsert=True))
-    # db.entity.update_one({"name": "Hello"},
-    #             {"$set":{
-    #             "foodId": foodId,
-    #             "foodName": foodName,
-    #             "foodBestBy": foodBestBy,
-    #             "foodQuantity":10000,
-    #             "foodPostedBy": foodPostedBy,
-    #             "foodLocation": foodLocation,
-    #             "pickUpTime": pickUpTime
-    #             }
-    #             }
-    # )
 
-def food_update(foodId,foodQuantity):
+##NOT DONE YET
+def food_update(foodId):
     print(db)
-
+    result = []
+    temp = db.find({"db.food.foodId" : 0})
+    result = json.loads(json_util.dumps(temp))
+    print(result)
+    foodQuantity = result[0][1][3]
+    print(foodQuantity)
     if(foodQuantity > 0):
         foodQuantity -= 1
-        db.update_one({"foodId": 0},
+        db.update_one({"db.food.foodId": 0},
 
                {"$set":{
-                "foodQuantity": foodQuantity
+                "db.food.foodQuantity": foodQuantity
                 }
                       }
     
@@ -184,9 +164,8 @@ def food_update(foodId,foodQuantity):
 #Param: thisDistance - the distance to compare against
 def getAllFoodNearby(thisDistance):
     result = []
-    curser = db.find({"distance": {"$gt": thisDistance, "$lt": thisDistance}})
-    for curser in curser:
-        result.append(curser)
+    curser = db.find({"db.Entity.distance": {"$gt": thisDistance, "$lt": thisDistance}})
+    result = json.loads(json_util.dumps(curser))
     print(result)
     return result
 
@@ -195,7 +174,11 @@ def getAllFoodNearby(thisDistance):
 #Param: businessName - the name to be retrieved
 def getByBusiness(bussinessName):
     print("By business")
-    return db.find({"business" : bussinessName})
+    result = []
+    temp = db.find({"db.Entity.Name" : bussinessName})
+    result = json.loads(json_util.dumps(temp))
+
+    return result
 
 
 #Name: getByFoodID
@@ -203,9 +186,10 @@ def getByBusiness(bussinessName):
 #Param: thisID - the id to be retrieved
 def getByFoodId(thisId):
     result = []
-    curser = db.find({"foodId" : thisId})
-    for curser in curser:
-        result.append(curser)
+    temp = db.find({"db.food.foodId" : thisId})
+    result =json.loads(json_util.dumps(temp))
+
+    print(result)
     return result
 
 
@@ -214,8 +198,10 @@ def getByFoodId(thisId):
 #Useful for when food becomes "out of stock"
 #Param: thisID - the id to be deleted
 def deleteFoodByID(thisID):
-    db.remove({"foodId" : thisID})
-    return
+    if(db.find_one({"db.food.foodId" : thisID})):
+        db.delete_one({"db.food.foodId" : thisID})
+    else:
+        return "Element not in db"
 #Description: Control flow section to handle HTML methods
 ###################### control flow ############################
 @app.route('/restuarant_push', methods =['POST'])
@@ -234,7 +220,7 @@ def flow_restuarant_push():
     dob = request.args.get('dob')
     try:
         resuarant_push(userName, password, isBusiness,isIndividual,isOrg, name,driversLicense, dob, address)
-        return ("restuarant push") #render_template('submit.html')
+        return ("restuarant push")
     except Exception as e:
         print("Error", e)
         return jsonify({'error': str("DARN")}), 400
@@ -260,7 +246,7 @@ def flow_food_update():
     foodId = request.args.get('foodId')
     foodQuantity = request.args.get('foodQuantity')
     try:
-        food_update(foodId,12)#foodQuantity)
+        food_update(foodId)#foodQuantity)
         return ("restuarant push") #render_template('submit.html')
     except Exception as e:
         print("Error", e)
@@ -287,7 +273,7 @@ def flow_nearby_get():
 def flow_byBusiness_get():
     business = request.args.get('business')
     try:
-        return "busines by id"#getByBusiness(business)
+        return getByBusiness("Hello")
     except Exception as e:
         print("Error", e)
         return jsonify({'error': str("DARN")}), 400
@@ -299,7 +285,7 @@ def flow_byBusiness_get():
 def flow_getByFoodId_get():
     fID = request.args.get('foodID')
     try:
-        return "by food id"#getByFoodId(fID)
+        return getByFoodId(fID)
     except Exception as e:
         print("Error", e)
         return jsonify({'error': str("DARN")}), 400
@@ -311,7 +297,7 @@ def flow_getByFoodId_get():
 def flow_deleteFood_delete():
     fID = request.args.get('foodID')
     try:
-        return "delete food id"#deleteFoodByID(fID)
+        return deleteFoodByID(fID)
     except Exception as e:
         print("Error", e)
         return jsonify({'error': str("DARN")}), 400
