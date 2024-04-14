@@ -4,9 +4,7 @@ from flask import current_app, g
 from werkzeug.local import LocalProxy
 from flask_pymongo import PyMongo
 
-from pymongo.errors import DuplicateKeyError, OperationFailure
 from bson.objectid import ObjectId
-from bson.errors import InvalidId
 import os
 
 from flask import Flask, render_template
@@ -18,7 +16,7 @@ import configparser
 import pymongo
 from bson import json_util, ObjectId
 from datetime import datetime, timedelta
-from flask import Blueprint, request, jsonify
+from flask import request, jsonify
 from bson import json_util
 import json
 
@@ -87,30 +85,30 @@ db = LocalProxy(get_db)
 #Description: Does work when on corresponding HTML methods
 ######################### Handling ############################
 def restuarant_push(userName, password, isBusiness,isIndividual,isOrg, name,driversLicense, dob, address):
-    temp =  {"db":{
-            "Entity":[
+    temp =  {'db':{
+            'Entity':[
             {
-                "userName": str(userName),
-                "password": str(password),
-                "isBusiness": bool(isBusiness),
-                "isIndividual": bool(isIndividual),
-                "isOrg": bool(isOrg),
-                "Name": str("Hello"),
-                "location": str(address),
-                "driversLicense": str(driversLicense),
-                "dob": str(dob)
+                'userName': str(userName),
+                'password': str(password),
+                'isBusiness': bool(isBusiness),
+                'isIndividual': bool(isIndividual),
+                'isOrg': bool(isOrg),
+                'Name': str(name),
+                'location': str(address),
+                'driversLicense': str(driversLicense),
+                'dob': str(dob)
             }
         ],
 
-        "food": [
+        'food': [
             {
-                "foodId": 0,
-                "foodName": "",
-                "foodBestBy": "",
-                "foodQuantity": 0,
-                "foodPostedBy": "",
-                "foodLocation": "",
-                "pickUpTime": ""
+                'foodId': 0,
+                'foodName': '',
+                'foodBestBy': '',
+                'foodQuantity': 0,
+                'foodPostedBy': '',
+                'foodLocation': '',
+                'pickUpTime': ''
             }
         ]
     }
@@ -119,9 +117,6 @@ def restuarant_push(userName, password, isBusiness,isIndividual,isOrg, name,driv
     print(db.insert_one(temp))
 
 def food_push(foodId, foodName, foodBestBy, foodQuantity, foodPostedBy, foodLocation, pickUpTime):
-
-    if(foodId == None):
-        foodId = 0
 
     template = {
                 "foodId": foodId,
@@ -133,7 +128,7 @@ def food_push(foodId, foodName, foodBestBy, foodQuantity, foodPostedBy, foodLoca
                 "pickUpTime": pickUpTime
                 }
     
-    print("\n\n",db.update_many({"db.Entity.Name" : "Hello"}, {"$set": {"db.food": template}}, upsert=True))
+    print("\n\n",db.update_many({"db.Entity.Name" : foodPostedBy}, {"$set": {"db.food": template}}, upsert=True))
 
 ##NOT DONE YET
 def food_update(foodId):
@@ -144,12 +139,7 @@ def food_update(foodId):
         
     result = json.loads(json_util.dumps(temp))
     result = list(result)
-    #print(map(result[0][1]))
-    #print("Len", len(result[0][1]))
-    #for i in range(len(result)):
-        #for j in range(len(result[i])):
-            #if(result[i][j] == 'foodQuantitiy'):
-                #foodQuantity = result[i][j][0]
+
     foodQuantity = 0
     if(foodQuantity > 0):
         foodQuantity -= 1
@@ -213,9 +203,18 @@ def deleteFoodByID(thisID):
 def getAll():
     result = []
     cursor = db.find({})
+    i = 0
     for document in cursor:
-          result.append(json_util.dumps(document))
-    return result
+          result.append(json.loads(json_util.dumps(document)))
+    return jsonify(result)
+
+def login(username, password):
+    if((db.find_one({"db.Entity.userName" : username}) != None and db.find_one({"db.Entity.password" : password})) != None):
+        return "Success"
+    else:
+        return "Invalid Username/Password"
+
+
 #Description: Control flow section to handle HTML methods
 ###################### control flow ############################
 @app.route('/get_all', methods=['GET'])
@@ -225,20 +224,30 @@ def flow_get_all():
     except Exception as e:
         print("Error", e)
         return jsonify({'error': str("DARN")}), 400
-    
+
+@app.route('/login', methods=['GET'])
+def flow_login():
+    userName = request.args.get('userName')
+    password = request.args.get('password')
+    try:
+        return (login(userName, password))
+    except Exception as e:
+        print("Error", e)
+        return jsonify({'error': str("DARN")}), 400
+
 
 @app.route('/restuarant_push', methods =['POST'])
 def flow_restuarant_push():
     
     #ADD WHEN READY 
-    userName = request.args.get('uName')
-    password = request.args.get('pWord')
+    userName = request.args.get('userName')
+    password = request.args.get('password')
     print(userName)
     isBusiness = request.args.get('isBusiness')
     isIndividual = request.args.get('isIndividual')
     isOrg = request.args.get('isOrg')
-    name = request.args.get('rName')
-    address = request.args.get('name')
+    name = request.args.get('name')
+    address = request.args.get('address')
     driversLicense = request.args.get('driversLicense')
     dob = request.args.get('dob')
     try:
@@ -296,7 +305,7 @@ def flow_nearby_get():
 def flow_byBusiness_get():
     business = request.args.get('business')
     try:
-        return getByBusiness("Hello")
+        return getByBusiness(business)
     except Exception as e:
         print("Error", e)
         return jsonify({'error': str("DARN")}), 400
@@ -306,7 +315,7 @@ def flow_byBusiness_get():
 #Directory of app is appended by /byFoodId and A GET call is made     
 @app.route('/byFoodId', methods=['GET'])
 def flow_getByFoodId_get():
-    fID = request.args.get('foodID')
+    fID = request.args.get('foodId')
     try:
         return getByFoodId(fID)
     except Exception as e:
