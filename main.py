@@ -74,46 +74,91 @@ app.config['MONGO_URI'] = config['PROD']['DB_URI']
 ######################### Handleing ############################
 db = LocalProxy(get_db)
 def resuarant_push(userName, password, name, address):
-    temp = PyMongo(app).db
-    print(db.Restuarants.insert_one({'userName':userName, 'password': password, 'Restuarant: ' : name, 'Address: ' : address, 'Food Quantity' : 0}))
-    return 0
+    temp = {str(userName):[{'password': password, 'Restuarant: ' : name, 'Address: ' : address}]}
+    print(db.Restuarants.insert_one(temp))
+
+
+def getAllFoodNearby(thisDistance):
+    result = []
+    curser = db.find({"distance": {"$gt": thisDistance, "$lt": thisDistance}})
+    for curser in curser:
+        result.append(curser)
+    print(result)
+    return result
+
+def getByBusiness(bussinessName):
+    print("By business")
+    return db.find({"business" : bussinessName})
+
+def getByFoodId(thisId):
+    result = []
+    curser = db.find({"foodId" : thisId})
+    for curser in curser:
+        result.append(curser)
+    return result
+
+def deleteFoodByID(thisID):
+    db.remove({"foodId" : thisID})
+    return
 ###################### control flow ############################
-@app.route('/<path:path>', methods =['POST'])
+@app.route('/restuarant_push', methods =['POST'])
 def flow_restuarant_push(path):
     
-    # = request.args.get('name')
-    print("IN")
+    #ADD WHEN READY 
     userName = request.args.get('uName')
     password = request.args.get('pWord')
+    print(userName)
     rest = request.args.get('rName')
     address = request.args.get('name')
     try:
-        #name = expect(post_data.get('name'), str, 'name')
-        #print("result of post", db.add_restuarant(str(post_data), "NONE", "NONE", "NONE"))
         resuarant_push(userName, password, rest, address)
-        return 0 #Flask.render_template('submit.html')
+        return ("restuarant push") #render_template('submit.html')
     except Exception as e:
         print("Error", e)
         return jsonify({'error': str("DARN")}), 400
     
-@app.route('/post', methods =['POST'])
-def flow_post_push(path):
     
-    # = request.args.get('name')
-    print("IN")
-    userName = request.args.get('uName')
-    password = request.args.get('pWord')
-    rest = request.args.get('rName')
-    address = request.args.get('name')
+@app.route('/nearby', methods =['GET'])
+def flow_nearby_get():
+    
+    #ADD WHEN READY 
+    distance = request.args.get('distance')
+    #password = request.args.get('pWord')
+
     try:
-        #name = expect(post_data.get('name'), str, 'name')
-        #print("result of post", db.add_restuarant(str(post_data), "NONE", "NONE", "NONE"))
-        resuarant_push(userName, password, rest, address)
-        return 0 #Flask.render_template('submit.html')
+        return "Nearby food" #getAllFoodNearby(int(distance))
     except Exception as e:
         print("Error", e)
         return jsonify({'error': str("DARN")}), 400
-################################################################
+    
+
+@app.route('/byBusiness', methods=['GET'])
+def flow_byBussiness_get():
+    business = request.args.get('business')
+    try:
+        return "busines by id"#getByBusiness(business)
+    except Exception as e:
+        print("Error", e)
+        return jsonify({'error': str("DARN")}), 400
+    
+@app.route('/byFoodId', methods=['GET'])
+def flow_getByFoodId_get():
+    fID = request.args.get('foodID')
+    try:
+        return "by food id"#getByFoodId(fID)
+    except Exception as e:
+        print("Error", e)
+        return jsonify({'error': str("DARN")}), 400
+
+@app.route('/delete', methods=['DELETE'])
+def flow_deleteFood_delete():
+    fID = request.args.get('foodID')
+    try:
+        return "delete food id"#deleteFoodByID(fID)
+    except Exception as e:
+        print("Error", e)
+        return jsonify({'error': str("DARN")}), 400
+# ###############################################################
 
 
 
