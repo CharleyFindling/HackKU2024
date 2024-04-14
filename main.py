@@ -213,7 +213,6 @@ def deleteFoodByID(thisID):
 def getAll():
     result = []
     cursor = db.find({})
-    i = 0
     for document in cursor:
           result.append(json_util.dumps(document))
     return result
